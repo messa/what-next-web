@@ -16,6 +16,25 @@ content_url = 'https://github.com/messa/what-next/blob/master/README.md'
 
 default_cache_dir = '~/.cache/what-next-web'
 
+slugs_by_title = {
+    'Další kurzy': 'dalsi-kurzy',
+    'Online kurzy': 'online-kurzy',
+    'Univerzitní kurzy, OCW, MOOC': 'univerzitni-kurzy',
+    'Úlohy na procvičování': 'ulohy-procvicovani',
+    'Summer of code, internshipy': 'internshipy',
+    'Co sledovat on-line': 'co-sledovat-online',
+    'Kam chodit: meetupy': 'meetupy',
+    'Kam zajít: konference': 'konference',
+    'Co si přečíst nejdřív': 'co-precist-nejdriv',
+    'Knížky': 'knizky',
+    'Základní Python knihovny, o kterých je dobré vědět': 'zakladni-python-knihovny',
+    'Data science, Machine learning': 'machine-learning',
+    'Základní pojmy v IT světě': 'zakladni-pojmy',
+    'Kam jít pracovat': 'kam-jit-pracovat',
+    'Různé': 'ruzne',
+    'TODO': 'todo',
+}
+
 logger = logging.getLogger(__name__)
 
 
@@ -51,11 +70,10 @@ def load_content_from_html(html):
     remove_anchors(article)
     content = {
         'titleHTML': None,
-        'sections': [
-            {
-                'items': [],
-            },
-        ],
+        'frontMatter': {
+            'items': [],
+        },
+        'sections': [],
     }
     for n, el in enumerate(article):
         try:
@@ -72,14 +90,19 @@ def load_content_from_html(html):
             if el.tag == 'h2':
                 content['sections'].append({
                     'titleHTML': element_contents_as_html(el),
+                    'slug': slugify(element_contents_as_text(el)),
                     'items': [],
                 })
                 continue
             assert not el.xpath('.//h2')
 
-            content['sections'][-1]['items'].append({
+            item = {
                 'html': element_to_html(el),
-            })
+            }
+            if content['sections']:
+                content['sections'][-1]['items'].append(item)
+            else:
+                content['frontMatter']['items'].append(item)
         except Exception as e:
             raise Exception('Failed to process element {}'.format(el)) from e
     return content
@@ -95,6 +118,19 @@ def element_contents_as_html(element):
     for el in element:
         out.append(element_to_html(el))
     return ''.join(out)
+
+
+def element_contents_as_text(element):
+    out = []
+    out.append(element.text or '')
+    for el in element:
+        out.append(element_contents_as_text(el))
+        out.append(el.tail)
+    return ''.join(out)
+
+
+def slugify(text):
+    return slugs_by_title[text]
 
 
 def remove_anchors(article):
