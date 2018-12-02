@@ -31,13 +31,14 @@ module.exports = {
     {
       resolve: `gatsby-transformer-json`,
       options: {
-        typeName: `Content`,
+        typeName: ({ object }) => object.type,
       },
     },
     {
       resolve: `gatsby-source-filesystem`,
       options: {
         path: `${__dirname}/content.json`,
+        name: 'content',
       },
     },
   ],

@@ -68,27 +68,27 @@ def load_content_from_html(html):
     doc = lxml.html.parse(StringIO(html))
     article, = doc.xpath('.//article')
     remove_anchors(article)
-    content = {
+    front_matter = {
+        'type': 'FrontMatter',
         'titleHTML': None,
-        'frontMatter': {
-            'items': [],
-        },
-        'sections': [],
+        'items': [],
     }
+    sections = []
     for n, el in enumerate(article):
         try:
             logger.debug('Processing: %s', smart_repr(element_to_html(el)))
             # process h1
             if n == 0:
                 assert el.tag == 'h1'
-                content['titleHTML'] = element_contents_as_html(el)
+                front_matter['titleHTML'] = element_contents_as_html(el)
                 continue
             assert el.tag != 'h1'
             assert not el.xpath('.//h1')
 
             # process h2
             if el.tag == 'h2':
-                content['sections'].append({
+                sections.append({
+                    'type': 'Section',
                     'titleHTML': element_contents_as_html(el),
                     'slug': slugify(element_contents_as_text(el)),
                     'items': [],
@@ -99,13 +99,13 @@ def load_content_from_html(html):
             item = {
                 'html': element_to_html(el),
             }
-            if content['sections']:
-                content['sections'][-1]['items'].append(item)
+            if sections:
+                sections[-1]['items'].append(item)
             else:
-                content['frontMatter']['items'].append(item)
+                front_matter['items'].append(item)
         except Exception as e:
             raise Exception('Failed to process element {}'.format(el)) from e
-    return content
+    return [front_matter] + sections
 
 
 def element_to_html(element):
